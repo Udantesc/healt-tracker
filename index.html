@@ -1,4 +1,285 @@
-water-cup.filled::after { height: 100%; }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Tracker — Dante</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:       #0D0D0D;
+  --surface:  #161616;
+  --surface2: #1E1E1E;
+  --border:   #2A2A2A;
+  --red:      #D63031;
+  --amber:    #E17055;
+  --green:    #00B894;
+  --blue:     #0984E3;
+  --gold:     #FDCB6E;
+  --text:     #F0EDE8;
+  --muted:    #666;
+  --mono:     'DM Mono', monospace;
+  --sans:     'DM Sans', sans-serif;
+  --display:  'Bebas Neue', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 32px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: rgba(13,13,13,0.95);
+  backdrop-filter: blur(12px);
+  z-index: 100;
+}
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+.logo {
+  font-family: var(--display);
+  font-size: 28px;
+  letter-spacing: 3px;
+  color: var(--text);
+}
+.logo span { color: var(--red); }
+.header-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+}
+.header-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.inbody-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 2px;
+}
+.score-num {
+  font-family: var(--display);
+  font-size: 32px;
+  color: var(--gold);
+  line-height: 1;
+}
+.score-max {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+/* ── TABS ── */
+.tabs-wrap {
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs-wrap::-webkit-scrollbar { display: none; }
+.tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 14px 20px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all .2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--red); }
+
+/* ── MAIN ── */
+main { padding: 28px 32px; max-width: 1200px; margin: 0 auto; }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── SECTION TITLE ── */
+.section-title {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.section-sub {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+@media(max-width:768px) {
+  .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  main { padding: 20px 16px; }
+  header { padding: 16px; }
+  .tabs-wrap { padding: 0 16px; }
+}
+
+/* ── CARD ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+.card-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* ── FORM ELEMENTS ── */
+label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+input[type=text], input[type=number], input[type=date], select, textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color .2s;
+  margin-bottom: 14px;
+  -webkit-appearance: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--red); }
+select option { background: var(--surface2); }
+textarea { resize: vertical; min-height: 60px; }
+
+/* ── TOGGLE BUTTONS ── */
+.toggle-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.tog {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  padding: 7px 14px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+}
+.tog:hover { border-color: var(--red); color: var(--text); }
+.tog.on { background: var(--red); border-color: var(--red); color: #fff; }
+.tog.on-green { background: var(--green); border-color: var(--green); color: #000; }
+.tog.on-gold { background: var(--gold); border-color: var(--gold); color: #000; }
+.tog.on-blue { background: var(--blue); border-color: var(--blue); color: #fff; }
+
+/* ── SLIDER ── */
+.slider-wrap { margin-bottom: 14px; }
+.slider-row { display: flex; align-items: center; gap: 12px; }
+input[type=range] {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  accent-color: var(--red);
+  outline: none;
+  cursor: pointer;
+  margin-bottom: 0;
+  border: none;
+  padding: 0;
+}
+.slider-val {
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--red);
+  min-width: 28px;
+  text-align: right;
+}
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ── WATER TRACKER ── */
+.water-track {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.water-cup {
+  width: 32px;
+  height: 38px;
+  border-radius: 0 0 6px 6px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  position: relative;
+}
+.water-cup::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 0%;
+  background: var(--blue);
+  transition: height .3s ease;
+  border-radius: 0 0 4px 4px;
+}
+.water-cup.filled::after { height: 100%; }
 .water-cup.filled { border-color: var(--blue); }
 .water-label {
   font-family: var(--mono);
@@ -273,7 +554,7 @@ water-cup.filled::after { height: 100%; }
   </div>
   <div class="header-score">
     <div class="inbody-badge">INBODY&nbsp;SCORE</div>
-    <div class="score-num" id="hdr-score">77</div>
+    <div class="score-num" id="hdr-score">74</div>
     <div class="score-max">/100</div>
   </div>
 </header>
@@ -352,13 +633,16 @@ water-cup.filled::after { height: 100%; }
 
       <!-- SUPLEMENTOS -->
       <div class="card">
-        <div class="card-label">💊 Suplementos</div>
+        <div class="card-label">💊 Suplementos — Plan 2</div>
         <div class="checklist">
           <div class="check-item" id="sup-creatina" onclick="toggleCheck(this)"><div class="check-box">✓</div>Creatina (antes 12 PM)</div>
           <div class="check-item" id="sup-omega3m" onclick="toggleCheck(this)"><div class="check-box">✓</div>Omega 3 — Desayuno (1g)</div>
           <div class="check-item" id="sup-omega3n" onclick="toggleCheck(this)"><div class="check-box">✓</div>Omega 3 — Cena (1g)</div>
-          <div class="check-item" id="sup-tongkat" onclick="toggleCheck(this)"><div class="check-box">✓</div>Tongkat Ali (opcional)</div>
+          <div class="check-item" id="sup-berberina-m" onclick="toggleCheck(this)"><div class="check-box">✓</div>Berberina 500mg — Antes desayuno</div>
+          <div class="check-item" id="sup-berberina-c" onclick="toggleCheck(this)"><div class="check-box">✓</div>Berberina 500mg — Antes comida</div>
+          <div class="check-item" id="sup-blackcumin" onclick="toggleCheck(this)"><div class="check-box">✓</div>Black Cumin Seed 1g — Después desayuno</div>
           <div class="check-item" id="sup-magnesio" onclick="toggleCheck(this)"><div class="check-box">✓</div>Magnesio (opcional)</div>
+          <div class="check-item" id="sup-tongkat" onclick="toggleCheck(this)"><div class="check-box">✓</div>Tongkat Ali (opcional)</div>
         </div>
       </div>
     </div>
@@ -585,19 +869,19 @@ water-cup.filled::after { height: 100%; }
 <!-- ══════════════════════════════════════════════ -->
 <div class="panel" id="panel-inbody">
   <div class="section-title">MEDICIONES INBODY</div>
-  <div class="section-sub">REGISTRO PERIÓDICO — LÍNEA BASE: 19/03/2026</div>
+  <div class="section-sub">LÍNEA BASE: 19/03/2026 · ÚLTIMA MEDICIÓN: 22/04/2026</div>
 
   <!-- TARGETS -->
   <div class="inbody-targets">
     <div class="target-card">
       <div class="target-label">Peso actual</div>
-      <div class="target-val" style="color:var(--amber);" id="ib-target-peso">90.4 <span style="font-size:14px;font-family:var(--mono);">kg</span></div>
+      <div class="target-val" style="color:var(--amber);" id="ib-target-peso">90.3 <span style="font-size:14px;font-family:var(--mono);">kg</span></div>
       <div class="target-arrow arrow-down">↓ Meta: 77.8 kg</div>
     </div>
     <div class="target-card">
       <div class="target-label">Grasa corporal</div>
-      <div class="target-val" style="color:var(--red);" id="ib-target-grasa">24.3 <span style="font-size:14px;font-family:var(--mono);">kg</span></div>
-      <div class="target-arrow arrow-down">↓ Bajar 12.6 kg</div>
+      <div class="target-val" style="color:var(--red);" id="ib-target-grasa">25.6 <span style="font-size:14px;font-family:var(--mono);">kg</span></div>
+      <div class="target-arrow arrow-down">↓ Bajar ~13.9 kg</div>
     </div>
     <div class="target-card">
       <div class="target-label">Grasa visceral</div>
@@ -606,17 +890,17 @@ water-cup.filled::after { height: 100%; }
     </div>
     <div class="target-card">
       <div class="target-label">Masa muscular</div>
-      <div class="target-val" style="color:var(--green);" id="ib-target-musculo">37.9 <span style="font-size:14px;font-family:var(--mono);">kg</span></div>
-      <div class="target-arrow arrow-ok">→ Mantener</div>
+      <div class="target-val" style="color:var(--amber);" id="ib-target-musculo">37.0 <span style="font-size:14px;font-family:var(--mono);">kg</span></div>
+      <div class="target-arrow arrow-up">↑ Recuperar ≥37.9</div>
     </div>
     <div class="target-card">
       <div class="target-label">% Grasa</div>
-      <div class="target-val" style="color:var(--red);" id="ib-target-pgc">26.9 <span style="font-size:14px;font-family:var(--mono);">%</span></div>
+      <div class="target-val" style="color:var(--red);" id="ib-target-pgc">28.4 <span style="font-size:14px;font-family:var(--mono);">%</span></div>
       <div class="target-arrow arrow-down">↓ Meta: &lt; 18%</div>
     </div>
     <div class="target-card">
       <div class="target-label">InBody Score</div>
-      <div class="target-val" style="color:var(--gold);" id="ib-target-score">77 <span style="font-size:14px;font-family:var(--mono);">/100</span></div>
+      <div class="target-val" style="color:var(--gold);" id="ib-target-score">74 <span style="font-size:14px;font-family:var(--mono);">/100</span></div>
       <div class="target-arrow arrow-up">↑ Meta: 85+</div>
     </div>
   </div>
@@ -933,7 +1217,7 @@ function saveDiario() {
 
     const comidas = [...document.querySelectorAll('#comidas-check .check-item.checked')]
       .map(c => c.textContent.trim());
-    const suplementos = ['sup-creatina','sup-omega3m','sup-omega3n','sup-tongkat','sup-magnesio']
+    const suplementos = ['sup-creatina','sup-omega3m','sup-omega3n','sup-berberina-m','sup-berberina-c','sup-blackcumin','sup-magnesio','sup-tongkat']
       .filter(id => { const el = document.getElementById(id); return el && el.classList.contains('checked'); })
       .map(id => { const el = document.getElementById(id); return el ? el.textContent.trim() : ''; });
 
@@ -1199,14 +1483,14 @@ function makeChart(id, type, labels, data, color, fill=false, refLine=null) {
 }
 
 function buildCharts() {
-  // Placeholder charts
   makeChart('chart-peso-diario','line',['—'],[null],'#FDCB6E', true, null);
   makeChart('chart-agua','bar',['—'],[null],'#0984E3');
   makeChart('chart-pasos','bar',['—'],[null],'#00B894');
   makeChart('chart-energia','line',['—'],[null],'#E17055', true);
   makeChart('chart-entrenos','bar',['—'],[null],'#D63031');
-  makeChart('chart-peso','line',['Base'],[90.4],'#FDCB6E', true, 77.8);
-  makeChart('chart-grasa','line',['Base'],[26.9],'#D63031', true, 18);
+  // InBody charts con los 2 puntos ya conocidos
+  makeChart('chart-peso','line',['03-19','04-22'],[90.4, 90.3],'#FDCB6E', true, 77.8);
+  makeChart('chart-grasa','line',['03-19','04-22'],[26.9, 28.4],'#D63031', true, 18);
 }
 
 function updateCharts() {
@@ -1239,14 +1523,22 @@ function updateCharts() {
 }
 
 function updateInBodyCharts() {
-  // Seed with baseline
-  const baseline = { fecha:'2026-03-19', peso:90.4, pgc:26.9 };
-  const ibData = [baseline, ...DB.get(KEYS.inbody)];
-  const labels = ibData.map(r => r.fecha.slice(5));
+  // Datos precargados: baseline marzo + medición abril del CSV
+  const precargados = [
+    { fecha:'2026-03-19', peso:90.4, pgc:26.9, musculo:37.9, grasa:24.3 },
+    { fecha:'2026-04-22', peso:90.3, pgc:28.4, musculo:37.0, grasa:25.6 }
+  ];
+  // Merge con datos guardados por el usuario (evitar duplicados por fecha)
+  const guardados = DB.get(KEYS.inbody);
+  const fechasGuardadas = guardados.map(r => r.fecha);
+  const base = [...precargados.filter(r => !fechasGuardadas.includes(r.fecha)), ...guardados]
+    .sort((a,b) => a.fecha.localeCompare(b.fecha));
+
+  const labels = base.map(r => r.fecha.slice(5));
   makeChart('chart-peso','line', labels,
-    ibData.map(r => r.peso ? parseFloat(r.peso) : null),'#FDCB6E', true, 77.8);
+    base.map(r => r.peso ? parseFloat(r.peso) : null),'#FDCB6E', true, 77.8);
   makeChart('chart-grasa','line', labels,
-    ibData.map(r => r.pgc ? parseFloat(r.pgc) : null),'#D63031', true, 18);
+    base.map(r => r.pgc ? parseFloat(r.pgc) : null),'#D63031', true, 18);
 }
 
 // ═══════════════════════════════════════════
