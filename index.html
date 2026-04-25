@@ -539,9 +539,76 @@ input[type=range] {
   font-size: 9px;
   margin-top: 3px;
 }
-.arrow-down { color: var(--red); }
-.arrow-up { color: var(--green); }
-.arrow-ok { color: var(--muted); }
+/* ── TIMELINE ── */
+.timeline { display: flex; flex-direction: column; }
+
+.tl-block {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.tl-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: var(--red);
+  text-transform: uppercase;
+  min-width: 110px;
+  padding-top: 12px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.tl-time-sup {
+  color: var(--gold);
+}
+.tl-content {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  position: relative;
+}
+.tl-content::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 18px;
+  width: 8px;
+  height: 1px;
+  background: var(--border);
+}
+.tl-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--text);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.tl-checks { display: flex; flex-direction: column; gap: 6px; }
+.tl-note {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-left: 2px solid var(--border);
+  letter-spacing: 0.5px;
+}
+.tl-connector {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  margin-left: 109px;
+  flex-shrink: 0;
+}
+@media(max-width:768px) {
+  .tl-block { flex-direction: column; gap: 4px; }
+  .tl-time { text-align: left; padding-top: 0; min-width: unset; }
+  .tl-content::before { display: none; }
+  .tl-connector { margin-left: 0; height: 8px; }
+}
 </style>
 </head>
 <body>
@@ -573,10 +640,10 @@ input[type=range] {
 <main>
 <div class="panel active" id="panel-diario">
 
-  <!-- TOP STATS -->
+  <!-- TOP STATS BAR -->
   <div class="grid-4" style="margin-bottom:20px;">
     <div class="stat-card">
-      <div class="stat-val" id="diario-peso">90.4<span class="stat-unit">kg</span></div>
+      <div class="stat-val" id="diario-peso">—<span class="stat-unit">kg</span></div>
       <div class="stat-label">Peso hoy</div>
     </div>
     <div class="stat-card">
@@ -584,7 +651,7 @@ input[type=range] {
       <div class="stat-label">Agua</div>
     </div>
     <div class="stat-card">
-      <div class="stat-val" id="diario-pasos-stat" style="color:var(--green)">0<span class="stat-unit"></span></div>
+      <div class="stat-val" id="diario-pasos-stat" style="color:var(--green)">0</div>
       <div class="stat-label">Pasos</div>
     </div>
     <div class="stat-card">
@@ -593,137 +660,227 @@ input[type=range] {
     </div>
   </div>
 
-  <div class="grid-2">
-
-    <!-- COLUMNA IZQUIERDA -->
-    <div>
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-label">📅 Fecha del registro</div>
-        <input type="date" id="d-fecha">
-
-        <div class="card-label" style="margin-top:4px;">⚖️ Peso (opcional)</div>
-        <input type="number" id="d-peso" placeholder="kg — solo si te pesaste" step="0.1">
+  <!-- FECHA + PESO + BIENESTAR -->
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-label">📅 Registro del día</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label>Fecha</label>
+          <input type="date" id="d-fecha">
+        </div>
+        <div>
+          <label>⚖️ Peso (opcional)</label>
+          <input type="number" id="d-peso" placeholder="kg" step="0.1" oninput="document.getElementById('diario-peso').innerHTML=this.value+'<span class=stat-unit>kg</span>'">
+        </div>
       </div>
 
-      <!-- COMIDAS -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-label">🍽️ Comidas completadas hoy</div>
-        <div class="checklist" id="comidas-check">
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>10 AM — Snack proteína + avena</div>
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>1-2 PM — Desayuno fuerte</div>
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>4-5 PM — Snack proteína + fruta</div>
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>10 PM — Cena</div>
+      <label>Nivel de energía del día</label>
+      <div class="slider-wrap">
+        <div class="slider-row">
+          <input type="range" min="1" max="10" step="1" value="7" id="sl-energia" oninput="updateEnergiaLabel(this.value)">
+          <div class="slider-val" id="sv-energia">7</div>
         </div>
-
-        <label style="margin-top:4px;">¿Empezaste con verduras primero?</label>
-        <div class="toggle-row">
-          <button class="tog" onclick="singleTog(this,'verduras-first','on-green')">✅ Sí</button>
-          <button class="tog" onclick="singleTog(this,'verduras-first','on-green')">❌ No</button>
-        </div>
-
-        <label>¿Comida libre esta semana?</label>
-        <div class="toggle-row">
-          <button class="tog" onclick="singleTog(this,'comida-libre','on')">Sí, hoy</button>
-          <button class="tog" onclick="singleTog(this,'comida-libre','on')">No</button>
-        </div>
-
-        <label>Notas de alimentación</label>
-        <textarea id="d-notas-food" placeholder="Qué comiste, algo destacado..."></textarea>
+        <div class="slider-labels"><span>Muy baja</span><span>Óptima</span></div>
       </div>
 
-      <!-- SUPLEMENTOS -->
-      <div class="card">
-        <div class="card-label">💊 Suplementos — Plan 2</div>
-        <div class="checklist">
-          <div class="check-item" id="sup-creatina" onclick="toggleCheck(this)"><div class="check-box">✓</div>Creatina (antes 12 PM)</div>
-          <div class="check-item" id="sup-omega3m" onclick="toggleCheck(this)"><div class="check-box">✓</div>Omega 3 — Desayuno (1g)</div>
-          <div class="check-item" id="sup-omega3n" onclick="toggleCheck(this)"><div class="check-box">✓</div>Omega 3 — Cena (1g)</div>
-          <div class="check-item" id="sup-berberina-m" onclick="toggleCheck(this)"><div class="check-box">✓</div>Berberina 500mg — Antes desayuno</div>
-          <div class="check-item" id="sup-berberina-c" onclick="toggleCheck(this)"><div class="check-box">✓</div>Berberina 500mg — Antes comida</div>
-          <div class="check-item" id="sup-blackcumin" onclick="toggleCheck(this)"><div class="check-box">✓</div>Black Cumin Seed 1g — Después desayuno</div>
-          <div class="check-item" id="sup-magnesio" onclick="toggleCheck(this)"><div class="check-box">✓</div>Magnesio (opcional)</div>
-          <div class="check-item" id="sup-tongkat" onclick="toggleCheck(this)"><div class="check-box">✓</div>Tongkat Ali (opcional)</div>
-        </div>
+      <label>Estado de ánimo</label>
+      <div class="toggle-row">
+        <button class="tog" onclick="singleTog(this,'mood','on-green')">🔥 Enfocado</button>
+        <button class="tog" onclick="singleTog(this,'mood','on-gold')">😐 Neutral</button>
+        <button class="tog" onclick="singleTog(this,'mood','on')">😓 Cansado</button>
+        <button class="tog" onclick="singleTog(this,'mood','on-blue')">😤 Estresado</button>
       </div>
     </div>
 
-    <!-- COLUMNA DERECHA -->
-    <div>
-      <!-- AGUA -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-label">💧 Hidratación diaria</div>
-        <div class="water-label" id="water-label">0 / 6 vasos (½ L c/u = 3L)</div>
-        <div class="water-track" id="water-cups"></div>
-        <label style="margin-top:4px;">Actividad física hoy (hrs)</label>
-        <div class="toggle-row">
-          <button class="tog" data-val="0" onclick="setExtraWater(this)">0</button>
-          <button class="tog" data-val="1" onclick="setExtraWater(this)">1h +500ml</button>
-          <button class="tog" data-val="2" onclick="setExtraWater(this)">2h +1L</button>
-          <button class="tog" data-val="3" onclick="setExtraWater(this)">3h +1.5L</button>
+    <div class="card">
+      <div class="card-label">😴 Sueño</div>
+      <label>Horas de sueño</label>
+      <div class="slider-wrap">
+        <div class="slider-row">
+          <input type="range" min="3" max="10" step="0.5" value="7" id="sl-sueno" oninput="document.getElementById('sv-sueno').textContent=this.value">
+          <div class="slider-val" id="sv-sueno">7</div>
         </div>
-        <div id="extra-water-note" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;"></div>
+        <div class="slider-labels"><span>3h</span><span>10h</span></div>
       </div>
 
-      <!-- PASOS -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-label">🚶 Pasos diarios — Meta: 10,000</div>
-        <div class="steps-display" id="steps-display">0</div>
-        <div class="steps-goal">Meta diaria: 10,000 pasos</div>
-        <div class="progress-bar"><div class="progress-fill" id="steps-bar" style="width:0%"></div></div>
-        <input type="number" id="d-pasos" placeholder="Ingresa tus pasos" style="margin-top:14px;" oninput="updateSteps(this.value)">
+      <label>Calidad del sueño</label>
+      <div class="toggle-row">
+        <button class="tog" onclick="singleTog(this,'sleep-q','on-green')">😴 Profundo</button>
+        <button class="tog" onclick="singleTog(this,'sleep-q','on-gold')">💤 Regular</button>
+        <button class="tog" onclick="singleTog(this,'sleep-q','on')">😵 Malo</button>
       </div>
 
-      <!-- SUEÑO Y ENERGÍA -->
-      <div class="card" style="margin-bottom:16px;">
-        <div class="card-label">😴 Sueño y bienestar</div>
-
-        <label>Horas de sueño</label>
-        <div class="slider-wrap">
-          <div class="slider-row">
-            <input type="range" min="3" max="10" step="0.5" value="7" id="sl-sueno" oninput="document.getElementById('sv-sueno').textContent=this.value">
-            <div class="slider-val" id="sv-sueno">7</div>
-          </div>
-          <div class="slider-labels"><span>3h</span><span>10h</span></div>
-        </div>
-
-        <label>Nivel de energía</label>
-        <div class="slider-wrap">
-          <div class="slider-row">
-            <input type="range" min="1" max="10" step="1" value="7" id="sl-energia" oninput="updateEnergiaLabel(this.value)">
-            <div class="slider-val" id="sv-energia">7</div>
-          </div>
-          <div class="slider-labels"><span>Muy baja</span><span>Óptima</span></div>
-        </div>
-
-        <label>Calidad del sueño</label>
-        <div class="toggle-row">
-          <button class="tog" onclick="singleTog(this,'sleep-q','on-green')">😴 Profundo</button>
-          <button class="tog" onclick="singleTog(this,'sleep-q','on-gold')">💤 Regular</button>
-          <button class="tog" onclick="singleTog(this,'sleep-q','on')">😵 Malo</button>
-        </div>
-
-        <label>Estado de ánimo</label>
-        <div class="toggle-row">
-          <button class="tog" onclick="singleTog(this,'mood','on-green')">🔥 Enfocado</button>
-          <button class="tog" onclick="singleTog(this,'mood','on-gold')">😐 Neutral</button>
-          <button class="tog" onclick="singleTog(this,'mood','on')">😓 Cansado</button>
-          <button class="tog" onclick="singleTog(this,'mood','on-blue')">😤 Estresado</button>
-        </div>
-      </div>
-
-      <!-- AYUNO -->
-      <div class="card">
-        <div class="card-label">⏱️ Ayunos 3-4 hrs entre comidas</div>
-        <div class="checklist">
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>Ayuno ✓ entre 10AM → 1PM</div>
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>Ayuno ✓ entre 2PM → 5PM</div>
-          <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>Ayuno ✓ entre 5PM → 10PM</div>
-        </div>
-      </div>
+      <label style="margin-top:8px;">🚶 Pasos del día</label>
+      <input type="number" id="d-pasos" placeholder="ej. 10000" oninput="updateSteps(this.value)">
+      <div class="progress-bar"><div class="progress-fill" id="steps-bar" style="width:0%"></div></div>
+      <div class="steps-goal" id="steps-display" style="margin-top:4px;">0 / 10,000 pasos</div>
     </div>
   </div>
 
-  <div style="margin-top:16px; display:flex; gap:12px;">
+  <!-- TIMELINE -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-label">🕐 TIMELINE DEL DÍA — PLAN 2</div>
+
+    <div class="timeline">
+
+      <!-- AL LEVANTARSE -->
+      <div class="tl-block">
+        <div class="tl-time">🌅 AL LEVANTARSE</div>
+        <div class="tl-content">
+          <div class="tl-title">Ritual matutino</div>
+          <div class="tl-checks">
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🫀 Limpia lenguas</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🍋 Vaso de agua tibia con jugo de ½ limón en ayunas</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tl-connector"></div>
+
+      <!-- 10:00 AM -->
+      <div class="tl-block">
+        <div class="tl-time">⏰ 10:00 AM</div>
+        <div class="tl-content">
+          <div class="tl-title">Snack mañana + Suplementos</div>
+          <div class="tl-checks">
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🥣 1 scoop proteína + 30g avena + 1 fruta + 10 nueces/almendras</div>
+            <div class="check-item" id="sup-creatina" onclick="toggleCheck(this)"><div class="check-box">✓</div>💊 Creatina 1 scoop (antes 12 PM)</div>
+            <div class="check-item" id="sup-omega3m" onclick="toggleCheck(this)"><div class="check-box">✓</div>🐟 Omega 3 — 1g</div>
+          </div>
+          <div class="tl-note">Ayuno mínimo 3h → próxima comida no antes de 1PM</div>
+        </div>
+      </div>
+
+      <div class="tl-connector"></div>
+
+      <!-- 12:30 PM — BERBERINA -->
+      <div class="tl-block">
+        <div class="tl-time tl-time-sup">💊 ~12:30 PM</div>
+        <div class="tl-content">
+          <div class="tl-title">Berberina — antes del desayuno</div>
+          <div class="tl-checks">
+            <div class="check-item" id="sup-berberina-m" onclick="toggleCheck(this)"><div class="check-box">✓</div>💊 Berberina 500mg (30 min antes de comer)</div>
+          </div>
+          <div class="tl-note">Tomar 30 min antes del desayuno para sensibilidad a insulina</div>
+        </div>
+      </div>
+
+      <div class="tl-connector"></div>
+
+      <!-- 1:00 - 2:00 PM DESAYUNO -->
+      <div class="tl-block">
+        <div class="tl-time">🍽️ 1:00 – 2:00 PM</div>
+        <div class="tl-content">
+          <div class="tl-title">Desayuno principal</div>
+          <div class="tl-checks">
+            <div class="check-item" id="ci-verduras-des" onclick="toggleCheck(this)"><div class="check-box">✓</div>🥗 Empezar con 1-2 tazas de verduras (jugo verde / ensalada / vapor)</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🍳 Proteína — 2 huevos+3 claras / 180g pollo / pavo / salmón / scoop</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🥑 3 grasas saludables</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🌽 2 carbohidratos (incl. 1 fruta, no repetir tortillas)</div>
+          </div>
+          <label style="margin-top:10px;display:block;">¿Qué comiste?</label>
+          <textarea id="d-notas-des" placeholder="ej. Omelette funcional con camote y aguacate..."></textarea>
+          <div class="tl-note">Orden: verduras → grasas/proteínas → carbohidratos</div>
+
+          <!-- POST DESAYUNO SUPLEMENTOS -->
+          <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">DESPUÉS DEL DESAYUNO</div>
+            <div class="check-item" id="sup-blackcumin" onclick="toggleCheck(this)"><div class="check-box">✓</div>🌱 Black Cumin Seed 1g</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tl-connector"></div>
+
+      <!-- ~3:30 PM — BERBERINA COMIDA -->
+      <div class="tl-block">
+        <div class="tl-time tl-time-sup">💊 ~3:30 PM</div>
+        <div class="tl-content">
+          <div class="tl-title">Berberina — antes del snack tarde</div>
+          <div class="tl-checks">
+            <div class="check-item" id="sup-berberina-c" onclick="toggleCheck(this)"><div class="check-box">✓</div>💊 Berberina 500mg (30 min antes)</div>
+          </div>
+          <div class="tl-note">Ayuno 3-4h desde el desayuno ✓</div>
+        </div>
+      </div>
+
+      <div class="tl-connector"></div>
+
+      <!-- 4:00 - 5:00 PM SNACK -->
+      <div class="tl-block">
+        <div class="tl-time">🥤 4:00 – 5:00 PM</div>
+        <div class="tl-content">
+          <div class="tl-title">Snack tarde</div>
+          <div class="tl-checks">
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🥛 1 scoop proteína Habits + ½ agua ½ leche almendras sin azúcar</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🍞 1 pieza pan tostado Cero Cero</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🍎 1 fruta (bajo IG)</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🌰 6 nueces o 6 almendras</div>
+          </div>
+          <div class="tl-note">Ayuno 5h → próxima comida no antes de 10PM</div>
+        </div>
+      </div>
+
+      <div class="tl-connector"></div>
+
+      <!-- 10:00 PM CENA -->
+      <div class="tl-block">
+        <div class="tl-time">🌙 10:00 PM</div>
+        <div class="tl-content">
+          <div class="tl-title">Cena</div>
+          <div class="tl-checks">
+            <div class="check-item" id="ci-verduras-cen" onclick="toggleCheck(this)"><div class="check-box">✓</div>🥗 Empezar con 1-2 tazas de verduras</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🍗 Proteína — 150g pechuga / pavo / atún / salmón / pescado / bistec</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🥑 2 grasas saludables</div>
+            <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🌽 2 carbohidratos</div>
+          </div>
+          <label style="margin-top:10px;display:block;">¿Qué cenaste?</label>
+          <textarea id="d-notas-cena" placeholder="ej. Salmón con quinoa y aguacate..."></textarea>
+
+          <!-- POST CENA SUPLEMENTOS -->
+          <div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:6px;border:1px solid var(--border);">
+            <div style="font-family:var(--mono);font-size:9px;letter-spacing:2px;color:var(--muted);margin-bottom:8px;">CON LA CENA</div>
+            <div class="check-item" id="sup-omega3n" onclick="toggleCheck(this)"><div class="check-box">✓</div>🐟 Omega 3 — 1g</div>
+            <div class="check-item" id="sup-magnesio" onclick="toggleCheck(this)" style="margin-top:6px;"><div class="check-box">✓</div>💊 Magnesio (opcional)</div>
+            <div class="check-item" id="sup-tongkat" onclick="toggleCheck(this)" style="margin-top:6px;"><div class="check-box">✓</div>🌿 Tongkat Ali (opcional)</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /timeline -->
+  </div>
+
+  <!-- AGUA + COMIDA LIBRE -->
+  <div class="grid-2" style="margin-bottom:16px;">
+    <div class="card">
+      <div class="card-label">💧 Hidratación diaria</div>
+      <div class="water-label" id="water-label">0 / 6 vasos (½ L c/u = 3L)</div>
+      <div class="water-track" id="water-cups"></div>
+      <label style="margin-top:10px;">Actividad física hoy (hrs extra de agua)</label>
+      <div class="toggle-row">
+        <button class="tog" data-val="0" onclick="setExtraWater(this)">0h</button>
+        <button class="tog" data-val="1" onclick="setExtraWater(this)">1h +500ml</button>
+        <button class="tog" data-val="2" onclick="setExtraWater(this)">2h +1L</button>
+        <button class="tog" data-val="3" onclick="setExtraWater(this)">3h +1.5L</button>
+      </div>
+      <div id="extra-water-note" style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:4px;"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label">📋 Cumplimiento del plan</div>
+      <div class="checklist">
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>✅ Comida libre esta semana (1 máximo)</div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>⏱️ Respetaste ayunos 3-4h entre comidas</div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>🚶 Llegaste a 10,000 pasos</div>
+        <div class="check-item" onclick="toggleCheck(this)"><div class="check-box">✓</div>💧 Tomaste 3L de agua</div>
+      </div>
+      <label style="margin-top:8px;">Notas generales del día</label>
+      <textarea id="d-notas-food" placeholder="Observaciones, cómo te sentiste, algo a mejorar..."></textarea>
+    </div>
+  </div>
+
+  <div style="margin-top:4px; display:flex; gap:12px;">
     <button class="btn btn-primary btn-full" onclick="saveDiario()">GUARDAR REGISTRO DEL DÍA</button>
     <button class="btn btn-secondary" onclick="exportCSV('diario')" style="white-space:nowrap;">↓ CSV</button>
   </div>
@@ -1157,10 +1314,11 @@ function setExtraWater(btn) {
 // ═══════════════════════════════════════════
 function updateSteps(val) {
   const v = parseInt(val) || 0;
-  document.getElementById('steps-display').textContent = v.toLocaleString();
-  document.getElementById('steps-bar').style.width = Math.min(100, v/100) + '%';
-  document.getElementById('diario-pasos-stat').innerHTML =
-    `${v.toLocaleString()}<span class="stat-unit"></span>`;
+  const el = document.getElementById('steps-display');
+  if(el) el.textContent = v.toLocaleString() + ' / 10,000 pasos';
+  const bar = document.getElementById('steps-bar');
+  if(bar) bar.style.width = Math.min(100, v/100) + '%';
+  document.getElementById('diario-pasos-stat').innerHTML = v.toLocaleString();
 }
 
 function updateEnergiaLabel(val) {
