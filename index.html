@@ -1214,19 +1214,119 @@ const DB = {
   push: (k,v) => { const a = DB.get(k); a.push(v); DB.set(k,a); return a; }
 };
 
-const KEYS = { diario:'dh_diario', entreno:'dh_entreno', inbody:'dh_inbody' };
+const KEYS = { diario:'dh_diario', entreno:'dh_entreno', inbody:'dh_inbody', draft:'dh_draft' };
+
+// ═══════════════════════════════════════════
+//  AUTO-SAVE DRAFT
+// ═══════════════════════════════════════════
+function saveDraft() {
+  try {
+    const today = new Date().toISOString().slice(0,10);
+    const checks = {};
+    document.querySelectorAll('#panel-diario .check-item').forEach((el,i) => {
+      checks[el.id || 'ci_'+i] = el.classList.contains('checked');
+    });
+    const toggles = {};
+    document.querySelectorAll('#panel-diario .tog.on, #panel-diario .tog.on-green, #panel-diario .tog.on-gold, #panel-diario .tog.on-blue').forEach((el,i) => {
+      const row = el.closest('.toggle-row');
+      if(row) {
+        const rowIdx = [...document.querySelectorAll('#panel-diario .toggle-row')].indexOf(row);
+        const btnIdx = [...row.querySelectorAll('.tog')].indexOf(el);
+        const cls = ['on','on-green','on-gold','on-blue'].find(c => el.classList.contains(c));
+        toggles['r'+rowIdx+'b'+btnIdx] = cls;
+      }
+    });
+    const draft = {
+      fecha: today,
+      peso: document.getElementById('d-peso').value || '',
+      pasos: document.getElementById('d-pasos').value || '',
+      sueno: document.getElementById('sl-sueno').value,
+      energia: document.getElementById('sl-energia').value,
+      agua: waterCount,
+      notas_food: document.getElementById('d-notas-food') ? document.getElementById('d-notas-food').value : '',
+      notas_des: document.getElementById('d-notas-des') ? document.getElementById('d-notas-des').value : '',
+      notas_cena: document.getElementById('d-notas-cena') ? document.getElementById('d-notas-cena').value : '',
+      checks,
+      toggles
+    };
+    DB.set(KEYS.draft, draft);
+  } catch(e) { /* silent */ }
+}
+
+function restoreOrResetDraft() {
+  const today = new Date().toISOString().slice(0,10);
+  const draft = DB.get(KEYS.draft);
+  // DB.get returns [] for missing key, so check if it's an object with fecha
+  if(!draft || Array.isArray(draft) || draft.fecha !== today) {
+    // Different day or no draft — start clean
+    DB.set(KEYS.draft, { fecha: today });
+    return;
+  }
+  // Restore draft from today
+  try {
+    if(draft.peso) { const el = document.getElementById('d-peso'); if(el) el.value = draft.peso; }
+    if(draft.pasos) { const el = document.getElementById('d-pasos'); if(el) { el.value = draft.pasos; updateSteps(draft.pasos); } }
+    if(draft.sueno) { const el = document.getElementById('sl-sueno'); if(el) { el.value = draft.sueno; document.getElementById('sv-sueno').textContent = draft.sueno; } }
+    if(draft.energia) { const el = document.getElementById('sl-energia'); if(el) { el.value = draft.energia; updateEnergiaLabel(draft.energia); } }
+    if(draft.agua) { waterCount = 0; toggleWater(draft.agua - 1); }
+    if(draft.notas_food) { const el = document.getElementById('d-notas-food'); if(el) el.value = draft.notas_food; }
+    if(draft.notas_des) { const el = document.getElementById('d-notas-des'); if(el) el.value = draft.notas_des; }
+    if(draft.notas_cena) { const el = document.getElementById('d-notas-cena'); if(el) el.value = draft.notas_cena; }
+
+    // Restore checkboxes
+    if(draft.checks) {
+      document.querySelectorAll('#panel-diario .check-item').forEach((el,i) => {
+        const key = el.id || 'ci_'+i;
+        if(draft.checks[key]) el.classList.add('checked');
+        else el.classList.remove('checked');
+      });
+    }
+    // Restore toggle buttons
+    if(draft.toggles) {
+      const rows = [...document.querySelectorAll('#panel-diario .toggle-row')];
+      Object.entries(draft.toggles).forEach(([key, cls]) => {
+        const rowIdx = parseInt(key.match(/r(\d+)/)[1]);
+        const btnIdx = parseInt(key.match(/b(\d+)/)[1]);
+        if(rows[rowIdx]) {
+          const btn = rows[rowIdx].querySelectorAll('.tog')[btnIdx];
+          if(btn && cls) btn.classList.add(cls);
+        }
+      });
+    }
+    showToast('↩ Borrador de hoy restaurado');
+  } catch(e) { /* silent */ }
+}
+
+function clearDraft() {
+  const today = new Date().toISOString().slice(0,10);
+  DB.set(KEYS.draft, { fecha: today });
+  // Reset all checks
+  document.querySelectorAll('#panel-diario .check-item').forEach(el => el.classList.remove('checked'));
+  // Reset all toggles
+  document.querySelectorAll('#panel-diario .tog').forEach(el =>
+    el.classList.remove('on','on-green','on-gold','on-blue','on-red'));
+  // Reset inputs
+  ['d-peso','d-pasos','d-notas-food','d-notas-des','d-notas-cena'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  const sueno = document.getElementById('sl-sueno'); if(sueno) { sueno.value = 7; document.getElementById('sv-sueno').textContent = '7'; }
+  const energia = document.getElementById('sl-energia'); if(energia) { energia.value = 7; updateEnergiaLabel(7); }
+  waterCount = 0;
+  document.querySelectorAll('.water-cup').forEach(c => c.classList.remove('filled'));
+  document.getElementById('water-label').textContent = '0 / 6 vasos (½ L c/u = 3L)';
+  document.getElementById('diario-agua-stat').innerHTML = '0<span class="stat-unit">/ 3L</span>';
+  updateSteps(0);
+}
 
 // ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  // Set today's date on all date inputs
   const today = new Date().toISOString().slice(0,10);
   ['d-fecha','e-fecha','ib-fecha'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = today;
   });
-  // Header date
   document.getElementById('hdr-date').textContent =
     new Date().toLocaleDateString('es-MX',{weekday:'short',year:'numeric',month:'short',day:'numeric'}).toUpperCase();
 
@@ -1234,6 +1334,18 @@ document.addEventListener('DOMContentLoaded', () => {
   buildWeekGrid();
   renderAll();
   buildCharts();
+
+  // Restore or reset draft AFTER building water cups
+  restoreOrResetDraft();
+
+  // Wire auto-save to all text inputs and textareas in diario
+  document.querySelectorAll('#panel-diario input, #panel-diario textarea').forEach(el => {
+    el.addEventListener('input', () => saveDraft());
+  });
+  // Wire auto-save to sliders
+  document.querySelectorAll('#panel-diario input[type=range]').forEach(el => {
+    el.addEventListener('input', () => saveDraft());
+  });
 });
 
 // ═══════════════════════════════════════════
@@ -1257,12 +1369,17 @@ function singleTog(btn, group, cls) {
     b.classList.remove('on','on-green','on-gold','on-blue','on-red');
   });
   btn.classList.add(cls);
+  saveDraft();
 }
 function multiTog(btn, cls) {
   btn.classList.toggle(cls);
   btn.classList.toggle('tog');
+  saveDraft();
 }
-function toggleCheck(el) { el.classList.toggle('checked'); }
+function toggleCheck(el) {
+  el.classList.toggle('checked');
+  saveDraft();
+}
 function singleTog2(btn, groupSel, cls) {
   document.querySelectorAll(groupSel + ' .tog').forEach(b =>
     b.classList.remove('on','on-green','on-gold','on-blue','on-red'));
@@ -1296,6 +1413,7 @@ function toggleWater(idx) {
     `${waterCount} / 6 vasos (½ L c/u = ${(waterCount*0.5).toFixed(1)}L)`;
   document.getElementById('diario-agua-stat').innerHTML =
     `${(waterCount*0.5).toFixed(1)}<span class="stat-unit">/ 3L</span>`;
+  saveDraft();
 }
 
 function setExtraWater(btn) {
@@ -1402,7 +1520,8 @@ function saveDiario() {
     DB.push(KEYS.diario, rec);
     renderDiario();
     updateWeeklySummary();
-    showToast('✓ Registro guardado');
+    clearDraft();
+    showToast('✓ Registro guardado — formulario listo para mañana');
 
     const ibData = DB.get(KEYS.inbody);
     if(ibData.length) {
